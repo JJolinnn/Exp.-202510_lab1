@@ -68,6 +68,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_SUMMARY: true
+
+  # --- 修正後的 SonarCloud 區塊 ---
   sonarcloud-scan:
     runs-on: ubuntu-latest
     name: SonarCloud 程式碼品質掃描
@@ -75,14 +77,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: SonarSource/sonarcloud-github-action@master
+      
+      # 改用 v3.1.0 穩定版，並移除 setup-java
+      - uses: SonarSource/sonarcloud-github-action@v3.1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # 加入這行來解決 51 錯誤 (加大記憶體)
+          SONAR_SCANNER_OPTS: "-Xmx2048m" 
         with:
           args: >
             -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.event.repository.name }}
             -Dsonar.organization=${{ github.repository_owner }}
+            -Dsonar.verbose=true
+  # ------------------------------
+
   security-summary:
     needs: [sast-scan, sca-scan, container-scan, iac-scan, secret-scan, sonarcloud-scan]
     runs-on: ubuntu-latest
